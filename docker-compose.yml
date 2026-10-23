@@ -1,0 +1,86 @@
+
+# Define o nome do projeto Docker Compose.
+name: cinco-app-atendimentos
+
+services:
+  # Configura o banco de dados PostgreSQL 16.
+  postgres:
+    image: postgres:16
+    container_name: cinco-app-atendimentos-postgres
+    restart: unless-stopped
+
+    # Define as credenciais e o nome do banco de dados.
+    environment:
+      POSTGRES_DB: cinco_app_atendimentos
+      POSTGRES_USER: vidu
+      POSTGRES_PASSWORD: vidu
+
+    # Expõe a porta 5432 do container na porta 5435 do computador.
+    ports:
+      - "5435:5432"
+
+    # Persiste os dados do banco mesmo após recriar o container.
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    # Conecta o PostgreSQL à rede compartilhada.
+    networks:
+      - atendimentos_network
+
+    # Verifica se o PostgreSQL está pronto para receber conexões.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vidu -d cinco_app_atendimentos"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # Configura a interface web do PgAdmin 4.
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: cinco-app-atendimentos-pgadmin
+    restart: unless-stopped
+
+    # Define as credenciais de acesso ao PgAdmin.
+    environment:
+      PGADMIN_DEFAULT_EMAIL: vidu@email.com
+      PGADMIN_DEFAULT_PASSWORD: vidu
+
+    # Expõe a interface web na porta 5052 do computador.
+    ports:
+      - "5052:80"
+
+    # Persiste as configurações e os servidores cadastrados no PgAdmin.
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+
+    # Conecta o PgAdmin à mesma rede do banco de dados.
+    networks:
+      - atendimentos_network
+
+    # Aguarda o PostgreSQL ficar saudável antes de iniciar o PgAdmin.
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    # Verifica se a interface do PgAdmin está respondendo.
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://localhost/misc/ping')"
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+# Declara os volumes persistentes dos dois serviços.
+volumes:
+  postgres_data:
+  pgadmin_data:
+
+# Declara a rede compartilhada entre PostgreSQL e PgAdmin.
+networks:
+  atendimentos_network:
+    driver: bridge
