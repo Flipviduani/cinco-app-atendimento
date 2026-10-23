@@ -37,7 +37,7 @@ services:
 
   # Configura a interface web do PgAdmin 4.
   pgadmin:
-    image: dpage/pgadmin4:latest
+    image: dpage/pgadmin4:9.18
     container_name: cinco-app-atendimentos-pgadmin
     restart: unless-stopped
 
